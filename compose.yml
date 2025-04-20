@@ -1,0 +1,39 @@
+services:
+  tailscale-authkey:
+    image: tailscale/tailscale:latest
+    container_name: ts-authkey
+    hostname: ollama
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/config/ollama.json
+    volumes:
+      - ts-authkey:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+      - ${PWD}/config:/config
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+  ollama:
+    image: ollama/ollama:rocm
+    container_name: ollama
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ollama:/root/.ollama
+    network_mode: service:tailscale-authkey
+    restart: unless-stopped
+    depends_on:
+      - tailscale-authkey
+
+volumes:
+  ts-authkey:
+    driver: local
+    name: ollama_ts-authkey
+  ollama:
+    driver: local
+    name: ollama_ollama
